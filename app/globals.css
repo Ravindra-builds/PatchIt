@@ -100,6 +100,15 @@
   --color-info-soft: var(--info-soft);
   --color-info-border: var(--info-border);
 
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-primary: var(--fg);
+  --color-primary-foreground: var(--bg);
+  --color-secondary: var(--subtle);
+  --color-secondary-foreground: var(--fg);
+  --color-muted-foreground: var(--muted);
+  --color-accent-foreground: var(--fg);
+  --color-input: var(--border);
   --color-ring: var(--ring);
   --shadow-card: var(--shadow-card);
 }
