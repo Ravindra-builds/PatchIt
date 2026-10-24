@@ -31,7 +31,7 @@ When developers encounter an unfamiliar open-source repository, understanding an
 
 | Component | Source | Role |
 |---|---|---|
-| Workspace UI | `app/page.tsx`, `features/analysis/analyze-client.ts` | Collects the URLs and optional screenshot, then posts JSON to the API |
+| Workspace UI | `app/analyze/workspace.tsx`, `components/analysis/analysis-form.tsx`, `features/analysis/analyze-client.ts` | Collects the issue URL and optional screenshot, derives the repository URL from the issue link, then posts JSON to the API |
 | `POST /api/analyze` | `app/api/analyze/route.ts` | Orchestrates the request under a single deadline |
 | Request Guards | `lib/rate-limit.ts`, `features/analysis/schemas.ts`, `lib/screenshot.ts` | Per-client rate limit, Zod input validation, body and screenshot size caps |
 | collectEvidence | `lib/github/collect-evidence.ts`, `lib/github/client.ts` | Fetches the issue, README, tree and candidate files from GitHub |
@@ -39,7 +39,7 @@ When developers encounter an unfamiliar open-source repository, understanding an
 | analyzeIssueWithGemma | `lib/ai/analyze-issue.ts`, `lib/ai/prompt.ts` | Builds the prompt and calls Gemma 4 via `@google/genai` |
 | Output Validator | `lib/ai/parse-model-output.ts` | Validates the model JSON with Zod and drops paths or evidence IDs that weren't fetched |
 
-1. **URL Validation:** Parses and validates that both URLs point to `github.com` and target the same repository.
+1. **URL Validation:** The form parses the issue URL and derives the repository from it. The API re-validates that both URLs point to `github.com` and target the same repository.
 2. **Evidence Collection:** Requests issue details, README, and the default branch tree.
 3. **Candidate Sampling:** Ranks paths using issue title/body keywords, excluding binaries and build directories (`node_modules`, `dist`, etc.), and samples top candidate files (bounded by byte caps).
 4. **Gemma 4 Reasoning:** Invokes Gemma 4 with bounded repository evidence, the optional screenshot, and strict JSON output formatting.
@@ -94,7 +94,7 @@ GITHUB_TOKEN=
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser, then paste a public GitHub issue URL (for example `https://github.com/facebook/react/issues/28000`). The repository is read from the link, so there's no separate repository field.
 
 ### 5. Run Tests
 
@@ -120,6 +120,8 @@ npm run start
 Analyzes a public GitHub issue and repository to produce a contribution plan.
 
 **Request Body (JSON):**
+
+`repositoryUrl` is still required by the API and must match the issue's repository. The web UI fills it in from `issueUrl`.
 
 ```json
 {
