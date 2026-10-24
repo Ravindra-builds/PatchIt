@@ -27,66 +27,59 @@ export function RelevantFilesList({ files }: RelevantFilesListProps) {
   const getConfidenceBadge = (confidence: 'high' | 'medium' | 'low') => {
     switch (confidence) {
       case 'high':
-        return <Badge variant="teal">High Relevance</Badge>;
+        return <Badge variant="accent">High relevance</Badge>;
       case 'medium':
-        return <Badge variant="blue">Medium Relevance</Badge>;
+        return <Badge variant="info">Medium relevance</Badge>;
       case 'low':
-        return <Badge variant="slate">Low Relevance</Badge>;
+        return <Badge variant="neutral">Low relevance</Badge>;
     }
   };
 
   return (
-    <div className="bg-[#111A27] border border-[#273548] rounded-xl p-5 sm:p-6 space-y-4 shadow-md">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-[#E6EDF5] flex items-center gap-2">
-          <FolderCode className="w-4 h-4 text-[#48C9A4]" />
-          Files Worth Opening
+    <div className="rounded-xl border border-border bg-surface shadow-card">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-fg">
+          <FolderCode className="h-4 w-4 text-muted" />
+          Files worth opening
         </h2>
-        <span className="text-xs text-[#9BAABD]">
+        <span className="text-xs text-faint">
           {files.length} sampled candidate {files.length === 1 ? 'file' : 'files'}
         </span>
       </div>
 
-      <div className="divide-y divide-[#273548] border border-[#273548] rounded-lg overflow-hidden bg-[#172233]">
+      <div className="divide-y divide-border px-5 sm:px-6">
         {files.map((file, index) => (
-          <div
-            key={index}
-            className="p-3.5 hover:bg-[#1a273b] transition-colors space-y-1.5"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2 overflow-hidden">
+          <div key={index} className="space-y-1.5 py-4">
+            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 items-center gap-2">
                 <a
                   href={file.githubUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-mono text-xs sm:text-sm text-[#8AB8F9] hover:text-[#b5d3ff] hover:underline flex items-center gap-1.5 font-medium truncate"
+                  className="flex min-w-0 items-center gap-1.5 font-mono text-[13px] font-medium text-info underline-offset-4 hover:underline"
                 >
                   <span className="truncate">{file.path}</span>
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                 </a>
 
                 <button
                   type="button"
                   onClick={() => handleCopy(file.path)}
-                  className="text-[#9BAABD] hover:text-[#E6EDF5] p-1 rounded transition-colors shrink-0 cursor-pointer"
+                  className="shrink-0 cursor-pointer rounded p-1 text-muted transition-colors hover:bg-subtle hover:text-fg"
                   title="Copy file path"
                 >
                   {copiedPath === file.path ? (
-                    <Check className="w-3 h-3 text-[#48C9A4]" />
+                    <Check className="h-3.5 w-3.5 text-accent" />
                   ) : (
-                    <Copy className="w-3 h-3" />
+                    <Copy className="h-3.5 w-3.5" />
                   )}
                 </button>
               </div>
 
-              <div className="shrink-0">
-                {getConfidenceBadge(file.confidence)}
-              </div>
+              <div className="shrink-0">{getConfidenceBadge(file.confidence)}</div>
             </div>
 
-            <p className="text-xs text-[#9BAABD] leading-relaxed">
-              {file.reason}
-            </p>
+            <p className="text-sm leading-6 text-muted">{file.reason}</p>
           </div>
         ))}
       </div>

@@ -1,10 +1,38 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
+type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
+}
+
+/** Button styling, shared with links that should look like buttons (e.g. next/link CTAs). */
+export function buttonClasses({
+  variant = 'primary',
+  size = 'md',
+  className = '',
+}: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}) {
+  const base =
+    'inline-flex items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap transition-colors select-none cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 disabled:cursor-not-allowed';
+
+  const sizes = {
+    sm: 'h-8 px-3 text-[13px]',
+    md: 'h-10 px-4 text-sm',
+    lg: 'h-12 px-6 text-[15px]',
+  }[size];
+
+  const variants = {
+    primary: 'bg-fg text-bg hover:bg-fg/85',
+    accent: 'bg-accent text-white hover:bg-accent-strong dark:text-zinc-950',
+    secondary: 'bg-surface text-fg border border-border shadow-card hover:bg-subtle hover:border-border-strong',
+    ghost: 'text-muted hover:text-fg hover:bg-subtle',
+  }[variant];
+
+  return `${base} ${sizes} ${variants} ${className}`;
 }
 
 export function Button({
@@ -16,33 +44,13 @@ export function Button({
   className = '',
   ...props
 }: ButtonProps) {
-  const baseClasses =
-    'inline-flex items-center justify-center font-medium transition-all rounded-lg focus:outline-none focus:ring-2 focus:ring-[#48C9A4]/40 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
-
-  const sizeClasses = {
-    sm: 'text-xs px-3 py-1.5 gap-1.5 h-8',
-    md: 'text-sm px-4 py-2 gap-2 h-10',
-    lg: 'text-base px-6 py-2.5 gap-2.5 h-12',
-  }[size];
-
-  const variantClasses = {
-    primary:
-      'bg-[#48C9A4] text-[#0B111B] font-semibold hover:bg-[#35B58D] active:bg-[#2fa07b]',
-    secondary:
-      'bg-[#172233] text-[#E6EDF5] border border-[#273548] hover:bg-[#1e2b3e] hover:border-[#38495f]',
-    outline:
-      'bg-transparent text-[#E6EDF5] border border-[#273548] hover:bg-[#172233]',
-    ghost:
-      'bg-transparent text-[#9BAABD] hover:text-[#E6EDF5] hover:bg-[#172233]',
-  }[variant];
-
   return (
     <button
-      className={`${baseClasses} ${sizeClasses} ${variantClasses} ${className}`}
+      className={buttonClasses({ variant, size, className })}
       disabled={disabled || loading}
       {...props}
     >
-      {loading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+      {loading && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
       {children}
     </button>
   );

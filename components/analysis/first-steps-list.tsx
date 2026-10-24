@@ -11,68 +11,61 @@ export function FirstStepsList({ steps }: FirstStepsListProps) {
   if (!steps || steps.length === 0) return null;
 
   return (
-    <div className="bg-[#111A27] border border-[#273548] rounded-xl p-5 sm:p-6 space-y-4 shadow-md">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-[#E6EDF5] flex items-center gap-2">
-          <Compass className="w-4 h-4 text-[#48C9A4]" />
-          Start Here: Prioritized Investigation Steps
-        </h2>
-        <span className="text-xs text-[#9BAABD]">Max 3 immediate actions</span>
+    <div className="rounded-xl border border-border bg-surface shadow-card">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
+        <div>
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-fg">
+            <Compass className="h-4 w-4 text-accent" />
+            Start here
+          </h2>
+          <p className="text-sm text-muted">Prioritized investigation steps</p>
+        </div>
+        <span className="text-xs text-faint">Max 3 immediate actions</span>
       </div>
 
-      <div className="space-y-3">
+      <div className="divide-y divide-border px-5 sm:px-6">
         {steps.map((step, index) => {
           const isVerified = step.verification === 'verified';
 
           return (
-            <div
-              key={index}
-              className="p-4 bg-[#172233] border border-[#273548] rounded-lg space-y-2 relative"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-[#48C9A4]/20 border border-[#48C9A4]/40 text-[#48C9A4] flex items-center justify-center text-xs font-mono font-bold shrink-0">
-                    {index + 1}
-                  </span>
-                  <h3 className="text-sm font-semibold text-[#E6EDF5]">
-                    {step.title}
-                  </h3>
+            <div key={index} className="flex gap-4 py-5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent-strong">
+                {index + 1}
+              </span>
+
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <h3 className="text-[15px] font-semibold tracking-tight text-fg">{step.title}</h3>
+                  <div className="shrink-0">
+                    <Badge variant={isVerified ? 'accent' : 'warning'}>
+                      {isVerified ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3" />
+                          Verified in repo
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-3 w-3" />
+                          Needs verification
+                        </>
+                      )}
+                    </Badge>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Badge variant={isVerified ? 'teal' : 'amber'}>
-                    {isVerified ? (
-                      <span className="flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Verified In Repo
+                <p className="text-sm leading-6 text-muted">{step.explanation}</p>
+
+                {step.evidenceIds && step.evidenceIds.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+                    <span className="text-xs text-faint">Evidence</span>
+                    {step.evidenceIds.map((eid) => (
+                      <span key={eid} className="font-mono text-[13px] text-info">
+                        {eid}
                       </span>
-                    ) : (
-                      <span className="flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Needs Verification
-                      </span>
-                    )}
-                  </Badge>
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <p className="text-xs text-[#9BAABD] leading-relaxed pl-7">
-                {step.explanation}
-              </p>
-
-              {step.evidenceIds && step.evidenceIds.length > 0 && (
-                <div className="pl-7 pt-1 flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-[#9BAABD]/60">Evidence:</span>
-                  {step.evidenceIds.map((eid) => (
-                    <span
-                      key={eid}
-                      className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#0B111B] text-[#9BAABD] border border-[#273548]"
-                    >
-                      {eid}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}

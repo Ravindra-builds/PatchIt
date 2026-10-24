@@ -1,50 +1,165 @@
 @import "tailwindcss";
 
-@theme {
-  --color-app-bg: #0B111B;
-  --color-surface-main: #111A27;
-  --color-surface-raised: #172233;
-  --color-surface-border: #273548;
-  --color-surface-border-subtle: #1e2b3c;
-  --color-text-primary: #E6EDF5;
-  --color-text-muted: #9BAABD;
-  --color-accent-teal: #48C9A4;
-  --color-accent-hover: #35B58D;
-  --color-status-warning: #E8B66A;
-  --color-status-error: #F08080;
-  --color-status-link: #8AB8F9;
+/* Theme is driven by data-theme on <html>, set before paint by the inline script in app/layout.tsx. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Design tokens. Components use the semantic names (bg-surface, text-muted, border-border, ...)
+ * so both themes come from this one place.
+ */
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --subtle: #f4f4f5;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+
+  --fg: #09090b;
+  --muted: #52525b;
+  --faint: #a1a1aa;
+
+  --accent: #059669;
+  --accent-strong: #047857;
+  --accent-soft: #ecfdf5;
+  --accent-border: #a7f3d0;
+
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --warning-border: #fde68a;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --danger-border: #fecaca;
+  --info: #2563eb;
+  --info-soft: #eff6ff;
+  --info-border: #bfdbfe;
+
+  --ring: rgb(5 150 105 / 0.35);
+  --shadow-card: 0 1px 2px rgb(9 9 11 / 0.04), 0 1px 3px rgb(9 9 11 / 0.04);
+
+  color-scheme: light;
 }
 
-:root {
+[data-theme="dark"] {
+  --bg: #09090b;
+  --surface: #111113;
+  --subtle: #18181b;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+
+  --fg: #fafafa;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+
+  --accent: #34d399;
+  --accent-strong: #6ee7b7;
+  --accent-soft: rgb(52 211 153 / 0.08);
+  --accent-border: rgb(52 211 153 / 0.25);
+
+  --warning: #fbbf24;
+  --warning-soft: rgb(251 191 36 / 0.08);
+  --warning-border: rgb(251 191 36 / 0.25);
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.08);
+  --danger-border: rgb(248 113 113 / 0.25);
+  --info: #60a5fa;
+  --info-soft: rgb(96 165 250 / 0.08);
+  --info-border: rgb(96 165 250 / 0.25);
+
+  --ring: rgb(52 211 153 / 0.35);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+
   color-scheme: dark;
 }
 
-body {
-  background-color: #0B111B;
-  color: #E6EDF5;
-  min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-border: var(--accent-border);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-border: var(--info-border);
+
+  --color-ring: var(--ring);
+  --shadow-card: var(--shadow-card);
 }
 
-/* Custom scrollbar for dark developer theme */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #0B111B;
-}
-::-webkit-scrollbar-thumb {
-  background: #273548;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #364861;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
-/* Monospace code styling */
-code, pre, kbd {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+@layer utilities {
+  /* Faint grid behind the landing hero; fades out toward the edges. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-in {
+    animation: none;
+  }
 }

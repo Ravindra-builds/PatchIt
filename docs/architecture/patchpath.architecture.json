@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PatchPath Architecture",
+    "locale": "en",
+    "output": "patchpath-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/Ravindra-builds/PatchIt",
+      "revision": "aa79e7c98e8956b4b3660b38d32a3add512c4581"
+    }
+  },
+  "components": [
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "Workspace UI",
+      "sublabel": "app/page.tsx",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "React 19",
+      "sources": [
+        {
+          "path": "app/page.tsx"
+        },
+        {
+          "path": "features/analysis/analyze-client.ts"
+        }
+      ]
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "POST /api/analyze",
+      "sublabel": "Route Handler",
+      "pos": [
+        280,
+        200
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "Next.js 16",
+      "sources": [
+        {
+          "path": "app/api/analyze/route.ts"
+        }
+      ]
+    },
+    {
+      "id": "guards",
+      "type": "security",
+      "label": "Request Guards",
+      "sublabel": "rate limit · Zod · size",
+      "pos": [
+        280,
+        40
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "lib/rate-limit.ts"
+        },
+        {
+          "path": "features/analysis/schemas.ts"
+        },
+        {
+          "path": "lib/screenshot.ts"
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "type": "backend",
+      "label": "collectEvidence",
+      "sublabel": "bounded packet",
+      "pos": [
+        560,
+        200
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "lib/github/collect-evidence.ts"
+        },
+        {
+          "path": "lib/github/client.ts"
+        }
+      ]
+    },
+    {
+      "id": "ranker",
+      "type": "backend",
+      "label": "File Ranker",
+      "sublabel": "keyword heuristics",
+      "pos": [
+        560,
+        40
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "lib/github/rank-files.ts"
+        }
+      ]
+    },
+    {
+      "id": "github",
+      "type": "external",
+      "label": "GitHub REST API",
+      "sublabel": "issue · README · tree",
+      "pos": [
+        840,
+        200
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "brand": "github"
+    },
+    {
+      "id": "analyze",
+      "type": "backend",
+      "label": "analyzeIssueWithGemma",
+      "sublabel": "prompt + screenshot",
+      "pos": [
+        560,
+        360
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "lib/ai/analyze-issue.ts"
+        },
+        {
+          "path": "lib/ai/prompt.ts"
+        }
+      ]
+    },
+    {
+      "id": "gemma",
+      "type": "cloud",
+      "label": "Gemma 4",
+      "sublabel": "@google/genai",
+      "pos": [
+        840,
+        360
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "lib/ai/client.ts"
+        }
+      ]
+    },
+    {
+      "id": "validator",
+      "type": "security",
+      "label": "Output Validator",
+      "sublabel": "Zod + evidence check",
+      "pos": [
+        270,
+        360
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "lib/ai/parse-model-output.ts"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Next.js server (secrets stay here)",
+      "wraps": [
+        "route",
+        "guards",
+        "evidence",
+        "ranker",
+        "analyze",
+        "validator"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "ui-to-route",
+      "from": "ui",
+      "to": "route",
+      "label": "JSON POST",
+      "variant": "emphasis"
+    },
+    {
+      "id": "route-guards",
+      "from": "route",
+      "to": "guards",
+      "label": "check",
+      "variant": "security"
+    },
+    {
+      "id": "route-evidence",
+      "from": "route",
+      "to": "evidence",
+      "variant": "emphasis"
+    },
+    {
+      "id": "evidence-github",
+      "from": "evidence",
+      "to": "github",
+      "label": "fetch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "evidence-ranker",
+      "from": "evidence",
+      "to": "ranker",
+      "label": "rank paths"
+    },
+    {
+      "id": "route-analyze",
+      "from": "route",
+      "to": "analyze",
+      "label": "evidence packet",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "analyze-gemma",
+      "from": "analyze",
+      "to": "gemma",
+      "label": "generateContent"
+    },
+    {
+      "id": "analyze-validator",
+      "from": "analyze",
+      "to": "validator",
+      "label": "raw JSON",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Request path",
+      "items": [
+        "Browser posts repo + issue URLs (optional screenshot)",
+        "One deadline aborts GitHub and model calls together",
+        "No GEMINI_API_KEY: only the bundled demo issue, served from mock data"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Grounding",
+      "items": [
+        "Issue, README, tree sample and top 5 ranked files",
+        "Every evidence item is byte-capped"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Safety",
+      "items": [
+        "Repo content treated as untrusted prompt data",
+        "Plan paths must exist in the fetched tree"
+      ]
+    }
+  ]
+}

@@ -103,7 +103,7 @@ export class GithubClient {
   private async request<T>(endpoint: string, rawText = false): Promise<T | string> {
     const url = `${GITHUB_API_BASE}${endpoint}`;
     const headers: Record<string, string> = {
-      'User-Agent': 'PatchPath-Agent/1.0',
+      'User-Agent': 'PatchIt-Agent/1.0',
       Accept: rawText ? 'application/vnd.github.raw' : 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
     };

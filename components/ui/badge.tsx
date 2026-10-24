@@ -2,22 +2,22 @@ import React from 'react';
 
 export interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'teal' | 'amber' | 'slate' | 'rose' | 'blue';
+  variant?: 'accent' | 'warning' | 'neutral' | 'danger' | 'info';
   className?: string;
 }
 
-export function Badge({ children, variant = 'slate', className = '' }: BadgeProps) {
+export function Badge({ children, variant = 'neutral', className = '' }: BadgeProps) {
   const variantStyles = {
-    teal: 'bg-[#48C9A4]/10 text-[#48C9A4] border-[#48C9A4]/30',
-    amber: 'bg-[#E8B66A]/10 text-[#E8B66A] border-[#E8B66A]/30',
-    slate: 'bg-[#172233] text-[#9BAABD] border-[#273548]',
-    rose: 'bg-[#F08080]/10 text-[#F08080] border-[#F08080]/30',
-    blue: 'bg-[#8AB8F9]/10 text-[#8AB8F9] border-[#8AB8F9]/30',
+    accent: 'bg-accent-soft text-accent-strong border-accent-border',
+    warning: 'bg-warning-soft text-warning border-warning-border',
+    neutral: 'bg-subtle text-muted border-border',
+    danger: 'bg-danger-soft text-danger border-danger-border',
+    info: 'bg-info-soft text-info border-info-border',
   }[variant];
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono tracking-wide uppercase border font-medium ${variantStyles} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${variantStyles} ${className}`}
     >
       {children}
     </span>

@@ -10,38 +10,29 @@ interface AnalysisErrorProps {
 
 export function AnalysisError({ message, code, onRetry }: AnalysisErrorProps) {
   return (
-    <div className="bg-[#111A27] border border-[#F08080]/30 rounded-xl p-6 text-center space-y-4">
-      <div className="w-10 h-10 rounded-full bg-[#F08080]/10 border border-[#F08080]/30 text-[#F08080] flex items-center justify-center mx-auto">
-        <AlertCircle className="w-5 h-5" />
-      </div>
-
-      <div className="space-y-1.5 max-w-md mx-auto">
-        <h3 className="text-sm font-semibold text-[#E6EDF5]">
-          Analysis Could Not Complete
-        </h3>
-        {code && (
-          <p className="text-[11px] font-mono text-[#F08080]">
-            [{code}]
-          </p>
-        )}
-        <p className="text-xs text-[#9BAABD] leading-relaxed">
-          {message}
-        </p>
-      </div>
-
-      {onRetry && (
-        <div className="pt-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onRetry}
-            className="text-xs"
-          >
-            <RefreshCw className="w-3.5 h-3.5 mr-1" />
-            Try again
-          </Button>
+    <div className="rounded-xl border border-danger-border bg-surface p-5 shadow-card sm:p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-danger-soft text-danger">
+          <AlertCircle className="h-4 w-4" />
         </div>
-      )}
+
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <h3 className="text-[15px] font-semibold tracking-tight text-fg">
+            Analysis couldn&apos;t complete
+          </h3>
+          <p className="text-sm leading-6 text-muted">{message}</p>
+          {code && <p className="font-mono text-xs text-faint">Error code: {code}</p>}
+
+          {onRetry && (
+            <div className="pt-3">
+              <Button variant="secondary" size="sm" onClick={onRetry}>
+                <RefreshCw className="h-3.5 w-3.5" />
+                Try again
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

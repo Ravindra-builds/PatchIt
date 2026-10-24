@@ -1,10 +1,10 @@
-# PatchPath
+# PatchIt
 
 > **Start with an issue. Leave with a plan.**
 
-PatchPath is an open-source developer orientation assistant built with **Next.js**, **TypeScript**, **Tailwind CSS**, and **Gemma 4** via the Google Gen AI SDK (`@google/genai`).
+PatchIt is an open-source developer orientation assistant built with **Next.js**, **TypeScript**, **Tailwind CSS**, and **Gemma 4** via the Google Gen AI SDK (`@google/genai`).
 
-When developers encounter an unfamiliar open-source repository, understanding an issue and knowing what to inspect first is daunting. PatchPath gathers real repository context directly from GitHub, feeds bounded evidence to Gemma 4, and synthesizes a structured, inspectable first-contribution plan.
+When developers encounter an unfamiliar open-source repository, understanding an issue and knowing what to inspect first is daunting. PatchIt gathers real repository context directly from GitHub, feeds bounded evidence to Gemma 4, and synthesizes a structured, inspectable first-contribution plan.
 
 ---
 
@@ -25,24 +25,19 @@ When developers encounter an unfamiliar open-source repository, understanding an
 
 ## Architecture & How It Works
 
-```mermaid
-flowchart TD
-    User["Developer: Repo URL + Issue URL (+ Optional Screenshot)"]
-    API["POST /api/analyze (Next.js Route Handler)"]
-    GH["GitHub API: Issue + README + Tree + Candidate Files"]
-    Ranker["Deterministic File Ranker (Keyword Heuristics)"]
-    Gemma["Gemma 4 (via @google/genai & Google Gen AI API)"]
-    Validator["Zod Schema Validator & Evidence Sanitizer"]
-    UI["Dark Ink Workspace UI: Grounded Plan + Source Links"]
+![PatchPath architecture](docs/architecture/patchpath-architecture.png)
 
-    User --> API
-    API --> GH
-    GH --> Ranker
-    Ranker --> API
-    API --> Gemma
-    Gemma --> Validator
-    Validator --> UI
-```
+> An interactive version (pan/zoom, search, links to source files, light/dark theme, PNG/SVG export) is in [`docs/architecture/patchpath-architecture.html`](docs/architecture/patchpath-architecture.html). Open it locally in a browser. The diagram is generated with Archify from [`docs/architecture/patchpath.architecture.json`](docs/architecture/patchpath.architecture.json).
+
+| Component | Source | Role |
+|---|---|---|
+| Workspace UI | `app/page.tsx`, `features/analysis/analyze-client.ts` | Collects the URLs and optional screenshot, then posts JSON to the API |
+| `POST /api/analyze` | `app/api/analyze/route.ts` | Orchestrates the request under a single deadline |
+| Request Guards | `lib/rate-limit.ts`, `features/analysis/schemas.ts`, `lib/screenshot.ts` | Per-client rate limit, Zod input validation, body and screenshot size caps |
+| collectEvidence | `lib/github/collect-evidence.ts`, `lib/github/client.ts` | Fetches the issue, README, tree and candidate files from GitHub |
+| File Ranker | `lib/github/rank-files.ts` | Ranks tree paths by issue keywords |
+| analyzeIssueWithGemma | `lib/ai/analyze-issue.ts`, `lib/ai/prompt.ts` | Builds the prompt and calls Gemma 4 via `@google/genai` |
+| Output Validator | `lib/ai/parse-model-output.ts` | Validates the model JSON with Zod and drops paths or evidence IDs that weren't fetched |
 
 1. **URL Validation:** Parses and validates that both URLs point to `github.com` and target the same repository.
 2. **Evidence Collection:** Requests issue details, README, and the default branch tree.
@@ -91,7 +86,7 @@ GEMMA_MODEL=gemma-4-26b-a4b-it
 GITHUB_TOKEN=
 ```
 
-> **Note:** If no `GEMINI_API_KEY` is provided during initial setup, PatchPath includes built-in preloaded examples (React and Next.js) so you can test the UI and workflow immediately.
+> **Note:** If no `GEMINI_API_KEY` is provided during initial setup, PatchIt includes built-in preloaded examples (React and Next.js) so you can test the UI and workflow immediately.
 
 ### 4. Run Development Server
 
@@ -103,7 +98,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### 5. Run Tests
 
-PatchPath comes with unit tests covering URL parsing, repository matching, Zod response validation, and candidate ranking heuristics:
+PatchIt comes with unit tests covering URL parsing, repository matching, Zod response validation, and candidate ranking heuristics:
 
 ```bash
 npm test
@@ -190,7 +185,7 @@ Analyzes a public GitHub issue and repository to produce a contribution plan.
 
 ## Design System & Theme
 
-PatchPath uses a focused, quiet developer workspace palette:
+PatchIt uses a focused, quiet developer workspace palette:
 
 | Token | Hex | Usage |
 |---|---|---|
@@ -208,7 +203,7 @@ PatchPath uses a focused, quiet developer workspace palette:
 
 ## Safety & Boundaries
 
-- **Never runs repository code:** PatchPath reads public repository text and metadata; it never installs dependencies or executes arbitrary code.
+- **Never runs repository code:** PatchIt reads public repository text and metadata; it never installs dependencies or executes arbitrary code.
 - **Prompt Injection Defense:** Model instructions strictly treat all repository content, issue descriptions, and screenshots as untrusted data.
 - **Secret Protection:** Secrets (`GEMINI_API_KEY`, `GITHUB_TOKEN`) are strictly accessed in server-side route handlers and are never exposed to client bundles.
 - **Read-only GitHub access:** No write permissions, repository alteration, or automated PR creation.

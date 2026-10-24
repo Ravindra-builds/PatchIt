@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { EvidencePacket } from '../../features/analysis/types';
 
-export const SYSTEM_INSTRUCTION = `You are PatchPath, an expert open-source contribution orientation assistant.
+export const SYSTEM_INSTRUCTION = `You are PatchIt, an expert open-source contribution orientation assistant.
 Your job is to help a developer approach an open-source issue in a repository they do not know well.
 
 CRITICAL SECURITY AND BEHAVIORAL RULES:

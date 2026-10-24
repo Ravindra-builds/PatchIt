@@ -12,41 +12,41 @@ export function OpenQuestionsSection({ questions, limitations }: OpenQuestionsSe
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="divide-y divide-border rounded-xl border border-border bg-surface shadow-card">
       {/* Open Questions */}
       {questions && questions.length > 0 && (
-        <div className="bg-[#111A27] border border-[#273548] rounded-xl p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-[#E6EDF5] flex items-center gap-2">
-            <HelpCircle className="w-4 h-4 text-[#8AB8F9]" />
-            What Still Needs Verification
+        <section className="p-5 sm:p-6">
+          <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-fg">
+            <HelpCircle className="h-4 w-4 text-info" />
+            What still needs verification
           </h3>
-          <ul className="space-y-2 text-xs text-[#9BAABD]">
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
             {questions.map((q, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span className="text-[#8AB8F9] shrink-0 mt-0.5">•</span>
-                <span className="leading-relaxed">{q}</span>
+              <li key={idx} className="flex items-start gap-2.5">
+                <span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-info" />
+                <span>{q}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       {/* Limitations */}
       {limitations && limitations.length > 0 && (
-        <div className="bg-[#111A27] border border-[#273548] rounded-xl p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-[#E6EDF5] flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[#E8B66A]" />
-            Analysis Boundaries & Limitations
+        <section className="p-5 sm:p-6">
+          <h3 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-fg">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            Analysis boundaries &amp; limitations
           </h3>
-          <ul className="space-y-2 text-xs text-[#9BAABD]">
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
             {limitations.map((l, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span className="text-[#E8B66A] shrink-0 mt-0.5">•</span>
-                <span className="leading-relaxed">{l}</span>
+              <li key={idx} className="flex items-start gap-2.5">
+                <span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-warning" />
+                <span>{l}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
     </div>
   );
