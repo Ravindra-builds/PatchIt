@@ -84,6 +84,10 @@ GEMMA_MODEL=gemma-4-26b-a4b-it
 
 # Optional: GitHub personal access token for higher rate limits (5,000 req/hr vs 60 req/hr)
 GITHUB_TOKEN=
+
+# Optional: total characters of repository evidence sent to the model (default: 36000).
+# The default fits the Gemma free tier (16k input tokens/minute); raise it on a paid tier.
+MAX_EVIDENCE_CHARS=36000
 ```
 
 > **Note:** If no `GEMINI_API_KEY` is provided during initial setup, PatchIt includes built-in preloaded examples (React and Next.js) so you can test the UI and workflow immediately.

@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         timeoutMs: Math.min(GITHUB_REQUEST_TIMEOUT_MS, env.ANALYSIS_TIMEOUT_MS),
         signal: deadline.signal,
       });
-      evidencePacket = await collectEvidence(owner, repo, issueNumber, github);
+      evidencePacket = await collectEvidence(owner, repo, issueNumber, github, env.MAX_EVIDENCE_CHARS);
 
       // 4. AI analysis with Gemma 4
       ({ plan, modelUsed } = await analyzeIssueWithGemma({

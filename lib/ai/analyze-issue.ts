@@ -86,9 +86,11 @@ function toAppError(err: unknown, modelName: string, signal?: AbortSignal): AppE
   }
 
   if (status === 429) {
+    // Google includes a RetryInfo delay (e.g. "retryDelay":"18s"); pass it on when present.
+    const retrySeconds = err instanceof Error ? err.message.match(/"retryDelay"\s*:\s*"(\d+)/)?.[1] : undefined;
     return new AppError(
       'AI_UNAVAILABLE',
-      'Google Gen AI quota limit reached for this API key. Please retry in a few moments.',
+      `Google Gen AI quota limit reached for this API key. Please retry in ${retrySeconds ? `about ${retrySeconds}s` : 'a minute'}.`,
       429
     );
   }

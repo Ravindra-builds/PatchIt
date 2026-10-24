@@ -8,12 +8,22 @@ const MAX_CANDIDATE_FILES = 5;
 const MAX_TREE_SAMPLE = 80;
 // Files above this size are skipped entirely instead of being downloaded and truncated.
 const MAX_FETCHABLE_FILE_BYTES = 256 * 1024;
+// Default total evidence size. ~36k chars is roughly 10-12k tokens, which keeps a whole request
+// (plus system prompt and screenshot) under the Gemma free tier's 16k input tokens per minute.
+const DEFAULT_MAX_EVIDENCE_CHARS = 36_000;
+
+function truncate(text: string, maxChars: number) {
+  return text.length > maxChars
+    ? { content: text.slice(0, maxChars), truncated: true }
+    : { content: text, truncated: false };
+}
 
 export async function collectEvidence(
   owner: string,
   repo: string,
   issueNumber: number,
-  client?: GithubClient
+  client?: GithubClient,
+  maxEvidenceChars: number = DEFAULT_MAX_EVIDENCE_CHARS
 ): Promise<EvidencePacket> {
   const gh = client || new GithubClient();
 
@@ -58,59 +68,72 @@ export async function collectEvidence(
   );
 
   const evidenceItems: EvidenceItem[] = [];
+  // Everything below draws from one character budget so the prompt stays inside model quotas.
+  let remainingChars = maxEvidenceChars;
 
-  // 1. Issue evidence
+  // 1. Issue evidence (at most a quarter of the budget; long issue threads otherwise crowd out code)
+  const issueBody = truncate(issueData.body || 'No description provided.', Math.floor(maxEvidenceChars / 4));
+  const issueContent = `Title: ${issueData.title}\nState: ${issueData.state}\nAuthor: ${issueData.author}\nLabels: ${issueData.labels.join(', ') || 'none'}\n\nDescription:\n${issueBody.content}`;
+  remainingChars -= issueContent.length;
   evidenceItems.push({
     id: 'issue-details',
     kind: 'issue',
     title: `Issue #${issueData.number}: ${issueData.title}`,
     url: issueData.htmlUrl,
-    content: `Title: ${issueData.title}\nState: ${issueData.state}\nAuthor: ${issueData.author}\nLabels: ${issueData.labels.join(', ') || 'none'}\n\nDescription:\n${issueData.body || 'No description provided.'}`,
-    truncated: false,
+    content: issueContent,
+    truncated: issueBody.truncated,
   });
 
-  // 2. README evidence (if exists)
-  if (readmeContent) {
-    const isTruncated = readmeContent.length > MAX_README_CHARS;
-    evidenceItems.push({
-      id: 'repo-readme',
-      kind: 'readme',
-      title: 'Repository README',
-      url: `${repoData.htmlUrl}#readme`,
-      content: isTruncated ? readmeContent.slice(0, MAX_README_CHARS) : readmeContent,
-      truncated: isTruncated,
-    });
-  }
-
-  // 3. Tree overview evidence
+  // 2. Tree overview evidence
   if (allTreePaths.length > 0) {
     const sampleTree = allTreePaths.slice(0, MAX_TREE_SAMPLE).join('\n');
     const totalLabel = tree.truncated ? `${allTreePaths.length}+` : `${allTreePaths.length}`;
+    const treeContent = tree.truncated
+      ? `${sampleTree}\n\n[Note: GitHub truncated the tree listing for this large repository; some files were not visible to the analysis.]`
+      : sampleTree;
+    remainingChars -= treeContent.length;
     evidenceItems.push({
       id: 'file-tree-sample',
       kind: 'file_tree',
       title: `File Tree Sample (${totalLabel} total files)`,
       url: `${repoData.htmlUrl}/tree/${repoData.defaultBranch}`,
-      content: tree.truncated
-        ? `${sampleTree}\n\n[Note: GitHub truncated the tree listing for this large repository; some files were not visible to the analysis.]`
-        : sampleTree,
+      content: treeContent,
       truncated: tree.truncated || allTreePaths.length > MAX_TREE_SAMPLE,
     });
   }
 
-  // 4. Source files
-  candidateFiles.forEach((file, index) => {
-    if (file.content) {
-      evidenceItems.push({
-        id: `source-file-${index}`,
-        kind: 'source_file',
-        title: `File: ${file.path}`,
-        url: `${repoData.htmlUrl}/blob/${repoData.defaultBranch}/${file.path}`,
-        content: file.content,
-        truncated: file.truncated,
-        path: file.path,
-      });
-    }
+  // 3. README evidence (if exists), capped at a fifth of the budget
+  if (readmeContent && remainingChars > 0) {
+    const readme = truncate(readmeContent, Math.min(MAX_README_CHARS, Math.floor(maxEvidenceChars / 5), remainingChars));
+    remainingChars -= readme.content.length;
+    evidenceItems.push({
+      id: 'repo-readme',
+      kind: 'readme',
+      title: 'Repository README',
+      url: `${repoData.htmlUrl}#readme`,
+      content: readme.content,
+      truncated: readme.truncated,
+    });
+  }
+
+  // 4. Source files share what's left evenly; space a short file doesn't use carries to the next one.
+  const filesWithContent = candidateFiles.filter(
+    (file): file is typeof file & { content: string } => Boolean(file.content)
+  );
+  filesWithContent.forEach((file, index) => {
+    const share = Math.floor(remainingChars / (filesWithContent.length - index));
+    if (share <= 0) return;
+    const source = truncate(file.content, share);
+    remainingChars -= source.content.length;
+    evidenceItems.push({
+      id: `source-file-${index}`,
+      kind: 'source_file',
+      title: `File: ${file.path}`,
+      url: `${repoData.htmlUrl}/blob/${repoData.defaultBranch}/${file.path}`,
+      content: source.content,
+      truncated: file.truncated || source.truncated,
+      path: file.path,
+    });
   });
 
   return {

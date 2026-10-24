@@ -22,6 +22,7 @@ const envSchema = z.object({
   ANALYSIS_TIMEOUT_MS: positiveIntWithDefault(60000),
   MAX_SCREENSHOT_BYTES: positiveIntWithDefault(5 * 1024 * 1024),
   RATE_LIMIT_PER_MINUTE: positiveIntWithDefault(5),
+  MAX_EVIDENCE_CHARS: positiveIntWithDefault(36_000),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;
@@ -45,6 +46,7 @@ export function getServerEnv(): ServerEnv {
     ANALYSIS_TIMEOUT_MS: readVar('ANALYSIS_TIMEOUT_MS'),
     MAX_SCREENSHOT_BYTES: readVar('MAX_SCREENSHOT_BYTES'),
     RATE_LIMIT_PER_MINUTE: readVar('RATE_LIMIT_PER_MINUTE'),
+    MAX_EVIDENCE_CHARS: readVar('MAX_EVIDENCE_CHARS'),
   });
 
   if (!result.success) {
