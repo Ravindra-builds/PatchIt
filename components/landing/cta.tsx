@@ -5,7 +5,7 @@ import { buttonClasses } from '@/components/ui/button';
 export function CallToAction() {
   return (
     <section className="border-t border-border">
-      <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="relative overflow-hidden rounded-2xl border border-border bg-surface px-6 py-14 text-center shadow-card sm:px-12 sm:py-16">
           <div
             aria-hidden="true"

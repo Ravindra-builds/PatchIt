@@ -4,14 +4,12 @@ import { buttonClasses } from '@/components/ui/button';
 import { Logo } from './logo';
 import { ThemeToggle } from './theme-toggle';
 import { GithubIcon } from './github-icon';
+import { REPO_URL } from '@/lib/site';
 
 interface SiteHeaderProps {
   /** `marketing` shows section links and the Get started CTA; `app` is the slimmer engine header. */
   variant?: 'marketing' | 'app';
 }
-
-// TODO: point to the project repository
-const REPO_URL = 'https://github.com';
 
 export function SiteHeader({ variant = 'marketing' }: SiteHeaderProps) {
   return (

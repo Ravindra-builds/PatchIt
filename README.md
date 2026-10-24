@@ -60,8 +60,8 @@ When developers encounter an unfamiliar open-source repository, understanding an
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/your-username/patchpath.git
-cd patchit
+git clone https://github.com/Ravindra-builds/PatchIt.git
+cd PatchIt
 npm install
 ```
 

@@ -37,7 +37,7 @@ const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
 export function Features() {
   return (
     <section id="features" className="scroll-mt-16 border-t border-border">
-      <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-medium text-accent-strong">Features</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-fg text-balance sm:text-4xl">

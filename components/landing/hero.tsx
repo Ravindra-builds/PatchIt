@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, Check } from 'lucide-react';
 import { buttonClasses } from '@/components/ui/button';
-import { ProductPreview } from './product-preview';
 
 const TRUST_POINTS = ['Free and open source', 'No sign-up', 'Public repositories only'];
 
@@ -14,7 +13,7 @@ export function Hero() {
         className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-accent/10 blur-3xl"
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-20 sm:px-6 sm:pt-28 lg:px-8">
+      <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted shadow-card">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -50,10 +49,6 @@ export function Hero() {
               </li>
             ))}
           </ul>
-        </div>
-
-        <div className="mx-auto mt-16 max-w-5xl sm:mt-20">
-          <ProductPreview />
         </div>
       </div>
     </section>
