@@ -1,9 +1,20 @@
 'use client';
-import React, { useState } from 'react';
-import { GitPullRequest, HelpCircle, X, ShieldAlert, Sparkles, Code } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { GitPullRequest, HelpCircle, X, ShieldAlert, Sparkles } from 'lucide-react';
 
 export function AppHeader() {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!showHowItWorks) return;
+    closeButtonRef.current?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowHowItWorks(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showHowItWorks]);
 
   return (
     <>
@@ -25,12 +36,14 @@ export function AppHeader() {
 
           <div className="flex items-center space-x-4 text-sm">
             <button
+              type="button"
               onClick={() => setShowHowItWorks(true)}
               className="flex items-center space-x-1.5 text-[#9BAABD] hover:text-[#E6EDF5] transition-colors cursor-pointer"
             >
               <HelpCircle className="w-4 h-4" />
               <span className="hidden sm:inline">How it works</span>
             </button>
+            {/* TODO: point to the project repository */}
             <a
               href="https://github.com"
               target="_blank"
@@ -48,9 +61,21 @@ export function AppHeader() {
 
       {/* How it works modal */}
       {showHowItWorks && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-          <div className="bg-[#111A27] border border-[#273548] rounded-xl max-w-lg w-full p-6 relative shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowHowItWorks(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="how-it-works-title"
+            className="bg-[#111A27] border border-[#273548] rounded-xl max-w-lg w-full p-6 relative shadow-2xl"
+          >
             <button
+              type="button"
+              ref={closeButtonRef}
               onClick={() => setShowHowItWorks(false)}
               className="absolute top-4 right-4 text-[#9BAABD] hover:text-[#E6EDF5] p-1 rounded-md transition-colors"
               aria-label="Close"
@@ -58,7 +83,7 @@ export function AppHeader() {
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-lg font-semibold text-[#E6EDF5] mb-2 flex items-center gap-2">
+            <h3 id="how-it-works-title" className="text-lg font-semibold text-[#E6EDF5] mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#48C9A4]" />
               How PatchPath Works
             </h3>
@@ -107,6 +132,7 @@ export function AppHeader() {
 
             <div className="mt-5 flex justify-end">
               <button
+                type="button"
                 onClick={() => setShowHowItWorks(false)}
                 className="px-4 py-1.5 rounded-lg bg-[#48C9A4] hover:bg-[#35B58D] text-[#0B111B] font-semibold text-xs transition-colors"
               >

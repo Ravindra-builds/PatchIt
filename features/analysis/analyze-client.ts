@@ -1,6 +1,16 @@
 import { AnalyzeRequest, AnalysisResponse } from './types';
 import { AnalysisStage } from '@/components/analysis/analysis-progress';
 
+export class AnalysisClientError extends Error {
+  code: string;
+
+  constructor(message: string, code: string) {
+    super(message);
+    this.name = 'AnalysisClientError';
+    this.code = code;
+  }
+}
+
 export async function executeAnalysis(
   payload: AnalyzeRequest,
   onStageChange: (stage: AnalysisStage) => void
@@ -31,25 +41,44 @@ export async function executeAnalysis(
     clearTimeout(stageTimer1);
     clearTimeout(stageTimer2);
 
-    const data = await response.json();
+    const rawBody = await response.text();
+    let data: { error?: { message?: string; code?: string } } | undefined;
+    let parsed = true;
+    try {
+      data = JSON.parse(rawBody);
+    } catch {
+      parsed = false;
+    }
+
+    if (!parsed) {
+      if (response.status === 413) {
+        throw new AnalysisClientError(
+          'Screenshot is too large. Please choose a smaller image.',
+          'REQUEST_TOO_LARGE'
+        );
+      }
+      if (!response.ok) {
+        throw new AnalysisClientError(`Request failed with status ${response.status}`, 'ANALYSIS_ERROR');
+      }
+      throw new AnalysisClientError('Received an invalid response from the server.', 'ANALYSIS_ERROR');
+    }
 
     if (!response.ok) {
       const errorMsg = data?.error?.message || `Request failed with status ${response.status}`;
       const errorCode = data?.error?.code || 'ANALYSIS_ERROR';
-      const err = new Error(errorMsg);
-      (err as any).code = errorCode;
-      throw err;
+      throw new AnalysisClientError(errorMsg, errorCode);
     }
 
     onStageChange('completed');
-    return data as AnalysisResponse;
+    return data as unknown as AnalysisResponse;
   } catch (err: unknown) {
     clearTimeout(stageTimer1);
     clearTimeout(stageTimer2);
     if (err instanceof Error && err.name === 'AbortError') {
-      const timeoutErr = new Error('The analysis timed out. Try again with a smaller issue.');
-      (timeoutErr as any).code = 'ANALYSIS_TIMEOUT';
-      throw timeoutErr;
+      throw new AnalysisClientError(
+        'The analysis timed out. Try again with a smaller issue.',
+        'ANALYSIS_TIMEOUT'
+      );
     }
     throw err;
   } finally {

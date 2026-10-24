@@ -2,22 +2,89 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AnalyzeRequestSchema } from '@/features/analysis/schemas';
 import { validateRepoAndIssueMatch } from '@/lib/github/parse-github-url';
 import { collectEvidence } from '@/lib/github/collect-evidence';
+import { GithubClient } from '@/lib/github/client';
 import { analyzeIssueWithGemma } from '@/lib/ai/analyze-issue';
 import { formatErrorResponse, AppError } from '@/lib/errors';
 import { getServerEnv } from '@/lib/env';
+import { checkRateLimit, getClientKey } from '@/lib/rate-limit';
+import { normalizeScreenshot } from '@/lib/screenshot';
+import { timeoutSignal } from '@/lib/abort';
+import type { ContributionPlan, EvidencePacket } from '@/features/analysis/types';
 import { MOCK_ANALYSIS_RESPONSE } from '@/features/analysis/mock-data';
 
+// Upper bound for the platform; the analysis itself is bounded by ANALYSIS_TIMEOUT_MS.
+export const maxDuration = 90;
+
+// Per-request cap for individual GitHub calls, within the overall analysis deadline.
+const GITHUB_REQUEST_TIMEOUT_MS = 15000;
+// Room for the JSON envelope and URLs on top of the base64-encoded screenshot.
+const BODY_OVERHEAD_BYTES = 64 * 1024;
+
+const MOCK_ISSUE = MOCK_ANALYSIS_RESPONSE.issue;
+
+function isMockDemoIssue(owner: string, repo: string, issueNumber: number): boolean {
+  return (
+    owner.toLowerCase() === MOCK_ISSUE.repository.owner.toLowerCase() &&
+    repo.toLowerCase() === MOCK_ISSUE.repository.name.toLowerCase() &&
+    issueNumber === MOCK_ISSUE.number
+  );
+}
+
+/** Reads the request body as JSON, refusing to buffer more than `maxBytes`. */
+async function readJsonBody(request: NextRequest, maxBytes: number): Promise<unknown> {
+  const tooLarge = () =>
+    new AppError('REQUEST_TOO_LARGE', 'Request body is too large. Please choose a smaller screenshot.', 413);
+
+  const declaredLength = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) throw tooLarge();
+
+  if (!request.body) throw new AppError('INVALID_INPUT', 'Request body is empty.');
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    throw new AppError('INVALID_INPUT', 'Invalid JSON payload received.');
+  }
+}
 
 export async function POST(request: NextRequest) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
   try {
-    let bodyJson: unknown;
-    try {
-      bodyJson = await request.json();
-    } catch {
-      throw new AppError('INVALID_INPUT', 'Invalid JSON payload received.');
+    const env = getServerEnv();
+
+    const rateLimit = checkRateLimit(getClientKey(request.headers), env.RATE_LIMIT_PER_MINUTE);
+    if (!rateLimit.allowed) {
+      const { status, body } = formatErrorResponse(
+        new AppError(
+          'RATE_LIMITED',
+          `Too many analyses requested. Please wait ${rateLimit.retryAfterSeconds}s and try again.`,
+          429
+        ),
+        requestId
+      );
+      return NextResponse.json(body, {
+        status,
+        headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+      });
     }
+
+    const maxBodyBytes = Math.ceil((env.MAX_SCREENSHOT_BYTES * 4) / 3) + BODY_OVERHEAD_BYTES;
+    const bodyJson = await readJsonBody(request, maxBodyBytes);
 
     const parseResult = AnalyzeRequestSchema.safeParse(bodyJson);
     if (!parseResult.success) {
@@ -25,63 +92,66 @@ export async function POST(request: NextRequest) {
       throw new AppError('INVALID_INPUT', `Invalid input: ${issueMessages}`);
     }
 
-    const { repositoryUrl, issueUrl, screenshotBase64, screenshotMimeType } = parseResult.data;
+    const { repositoryUrl, issueUrl } = parseResult.data;
 
-    // Validate screenshot size if present (e.g. max 5MB)
-    if (screenshotBase64) {
-      const approxByteSize = Math.ceil((screenshotBase64.length * 3) / 4);
-      const maxBytes = 5 * 1024 * 1024;
-      if (approxByteSize > maxBytes) {
-        throw new AppError(
-          'REQUEST_TOO_LARGE',
-          'Screenshot exceeds the 5 MB limit. Please choose a smaller image.',
-          413
-        );
-      }
-    }
+    const screenshot = parseResult.data.screenshotBase64
+      ? normalizeScreenshot(
+          parseResult.data.screenshotBase64,
+          parseResult.data.screenshotMimeType,
+          env.MAX_SCREENSHOT_BYTES
+        )
+      : undefined;
 
     // 1. Validate GitHub URLs and match
     const { owner, repo, issueNumber } = validateRepoAndIssueMatch(repositoryUrl, issueUrl);
 
-    // 2. Collect bounded repository and issue evidence from GitHub
-    const evidencePacket = await collectEvidence(owner, repo, issueNumber);
-
-    // 3. AI analysis with Gemma 4
-    let plan;
-    let modelUsed = 'gemma-4-26b-a4b-it';
-
-    const env = getServerEnv();
+    // 2. Without an API key, only the bundled demo issue can be served (from mock data, no GitHub calls).
     if (!env.GEMINI_API_KEY) {
-      // If no API key is provided yet, check if this is one of our demo issues or give a helpful key error
-      if (
-        (owner.toLowerCase() === 'facebook' && repo.toLowerCase() === 'react') ||
-        (owner.toLowerCase() === 'vercel' && repo.toLowerCase() === 'next.js')
-      ) {
-        plan = MOCK_ANALYSIS_RESPONSE.plan;
-        modelUsed = 'gemma-4-26b-a4b-it (demo mock - set GEMINI_API_KEY for live calls)';
-      } else {
-        throw new AppError(
-          'AI_UNAVAILABLE',
-          'GEMINI_API_KEY is not configured on the server. Please add your GEMINI_API_KEY to .env.local to run live Gemma 4 analysis on any public repository.',
-          503
-        );
+      if (isMockDemoIssue(owner, repo, issueNumber)) {
+        return NextResponse.json({
+          ...MOCK_ANALYSIS_RESPONSE,
+          modelUsed: `${MOCK_ANALYSIS_RESPONSE.modelUsed} (demo mock - set GEMINI_API_KEY for live calls)`,
+          requestId,
+        });
       }
-    } else {
-      const analysisResult = await analyzeIssueWithGemma({
-        evidencePacket,
-        screenshotBase64,
-        screenshotMimeType,
-      });
-      plan = analysisResult.plan;
-      modelUsed = analysisResult.modelUsed;
+      throw new AppError(
+        'AI_UNAVAILABLE',
+        `GEMINI_API_KEY is not configured on the server. Add it to .env.local to run live Gemma 4 analysis. Without a key, only the demo issue ${MOCK_ISSUE.htmlUrl} is available.`,
+        503
+      );
     }
 
-    // 4. Return structured response
-    const analyzedFiles = evidencePacket.evidenceItems
-      .filter((e) => e.kind === 'source_file')
-      .map((e) => e.title.replace('File: ', ''));
+    // One deadline for the whole analysis; also aborts if the client disconnects.
+    const deadline = timeoutSignal(env.ANALYSIS_TIMEOUT_MS, request.signal);
 
-    if (evidencePacket.evidenceItems.some((e) => e.kind === 'readme')) {
+    let evidencePacket: EvidencePacket;
+    let plan: ContributionPlan;
+    let modelUsed: string;
+    try {
+      // 3. Collect bounded repository and issue evidence from GitHub
+      const github = new GithubClient({
+        timeoutMs: Math.min(GITHUB_REQUEST_TIMEOUT_MS, env.ANALYSIS_TIMEOUT_MS),
+        signal: deadline.signal,
+      });
+      evidencePacket = await collectEvidence(owner, repo, issueNumber, github);
+
+      // 4. AI analysis with Gemma 4
+      ({ plan, modelUsed } = await analyzeIssueWithGemma({
+        evidencePacket,
+        screenshotBase64: screenshot?.data,
+        screenshotMimeType: screenshot?.mimeType,
+        signal: deadline.signal,
+      }));
+    } finally {
+      deadline.clear();
+    }
+
+    // 5. Return structured response
+    const analyzedFiles = evidencePacket.evidenceItems.flatMap((e) =>
+      e.kind === 'source_file' && e.path ? [e.path] : []
+    );
+    const hasReadme = evidencePacket.evidenceItems.some((e) => e.kind === 'readme');
+    if (hasReadme) {
       analyzedFiles.push('README.md');
     }
 
@@ -90,7 +160,7 @@ export async function POST(request: NextRequest) {
       issue: evidencePacket.issue,
       evidenceSummary: {
         fileCount: analyzedFiles.length,
-        hasReadme: evidencePacket.evidenceItems.some((e) => e.kind === 'readme'),
+        hasReadme,
         treeTotalFiles: evidencePacket.allTreePaths.length,
         analyzedFiles,
       },

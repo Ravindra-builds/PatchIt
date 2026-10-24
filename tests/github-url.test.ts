@@ -88,7 +88,8 @@ test('validateRepoAndIssueMatch: throws when repo and issue do not match', () =>
         'https://github.com/facebook/react',
         'https://github.com/vercel/next.js/issues/28000'
       ),
-    (err: any) => {
+    (err: unknown) => {
+      assert.ok(err instanceof AppError);
       assert.equal(err.code, 'ISSUE_REPOSITORY_MISMATCH');
       return true;
     }

@@ -24,6 +24,8 @@ export type EvidenceItem = {
   url: string;
   content: string;
   truncated: boolean;
+  /** Repository-relative path, set for source_file items. */
+  path?: string;
 };
 
 export type EvidencePacket = {
@@ -38,4 +40,6 @@ export type EvidencePacket = {
   issue: IssueMetadata;
   evidenceItems: EvidenceItem[];
   allTreePaths: string[];
+  /** True when GitHub truncated the recursive tree listing (very large repositories). */
+  treeTruncated: boolean;
 };

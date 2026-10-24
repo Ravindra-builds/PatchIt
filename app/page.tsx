@@ -9,9 +9,9 @@ import { FirstStepsList } from '@/components/analysis/first-steps-list';
 import { RelevantFilesList } from '@/components/analysis/relevant-files-list';
 import { CommandBlock } from '@/components/analysis/command-block';
 import { OpenQuestionsSection } from '@/components/analysis/open-questions-section';
-import { executeAnalysis } from '@/features/analysis/analyze-client';
+import { executeAnalysis, AnalysisClientError } from '@/features/analysis/analyze-client';
 import { AnalysisResponse, AnalyzeRequest } from '@/features/analysis/types';
-import { Sparkles, Terminal, FileCheck, Layers } from 'lucide-react';
+import { Sparkles, FileCheck, Layers } from 'lucide-react';
 
 export default function PatchPathPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -31,11 +31,12 @@ export default function PatchPathPage() {
         setCurrentStage(stage);
       });
       setAnalysisResult(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Analysis failed:', err);
       setErrorInfo({
-        message: err?.message || 'An unexpected error occurred while analyzing the issue.',
-        code: err?.code,
+        message:
+          (err instanceof Error && err.message) || 'An unexpected error occurred while analyzing the issue.',
+        code: err instanceof AnalysisClientError ? err.code : undefined,
       });
     } finally {
       setIsLoading(false);

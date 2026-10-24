@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import { RelevantFile } from '@/features/analysis/types';
 import { Badge } from '../ui/badge';
@@ -12,10 +13,15 @@ export function RelevantFilesList({ files }: RelevantFilesListProps) {
 
   if (!files || files.length === 0) return null;
 
-  const handleCopy = (path: string) => {
-    navigator.clipboard.writeText(path);
-    setCopiedPath(path);
-    setTimeout(() => setCopiedPath(null), 2000);
+  const handleCopy = async (path: string) => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(path);
+      setCopiedPath(path);
+      setTimeout(() => setCopiedPath(null), 2000);
+    } catch (err) {
+      console.warn('Failed to copy to clipboard:', err);
+    }
   };
 
   const getConfidenceBadge = (confidence: 'high' | 'medium' | 'low') => {

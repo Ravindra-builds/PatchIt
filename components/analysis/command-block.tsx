@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import { Reproduction } from '@/features/analysis/types';
 import { Badge } from '../ui/badge';
@@ -12,10 +13,15 @@ export function CommandBlock({ reproduction }: CommandBlockProps) {
 
   if (!reproduction || reproduction.length === 0) return null;
 
-  const handleCopy = (instruction: string, idx: number) => {
-    navigator.clipboard.writeText(instruction);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const handleCopy = async (instruction: string, idx: number) => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(instruction);
+      setCopiedIndex(idx);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.warn('Failed to copy to clipboard:', err);
+    }
   };
 
   return (

@@ -1,3 +1,4 @@
+import { ApiError, ThinkingLevel, type Part } from '@google/genai';
 import { getGenAIClient } from './client';
 import { getServerEnv } from '../env';
 import { SYSTEM_INSTRUCTION, buildAnalysisUserPrompt } from './prompt';
@@ -9,32 +10,34 @@ export interface AnalyzeIssueOptions {
   evidencePacket: EvidencePacket;
   screenshotBase64?: string;
   screenshotMimeType?: string;
+  /** Aborts the model call, e.g. when the overall analysis deadline passes. */
+  signal?: AbortSignal;
 }
 
 export async function analyzeIssueWithGemma({
   evidencePacket,
   screenshotBase64,
   screenshotMimeType = 'image/png',
+  signal,
 }: AnalyzeIssueOptions): Promise<{ plan: ContributionPlan; modelUsed: string }> {
   const env = getServerEnv();
-  const modelName = env.GEMMA_MODEL || 'gemma-4-26b-a4b-it';
+  const modelName = env.GEMMA_MODEL;
   const ai = getGenAIClient();
 
   const userPrompt = buildAnalysisUserPrompt(evidencePacket, Boolean(screenshotBase64));
 
-  const parts: any[] = [{ text: userPrompt }];
+  const parts: Part[] = [{ text: userPrompt }];
 
   if (screenshotBase64) {
-    // Strip possible data URI prefix if passed by client
-    const cleanBase64 = screenshotBase64.replace(/^data:image\/[a-z]+;base64,/, '');
     parts.push({
       inlineData: {
-        data: cleanBase64,
+        data: screenshotBase64,
         mimeType: screenshotMimeType,
       },
     });
   }
 
+  let outputText: string;
   try {
     const response = await ai.models.generateContent({
       model: modelName,
@@ -48,42 +51,67 @@ export async function analyzeIssueWithGemma({
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: 'application/json',
         temperature: 0.2,
+        // Gemma 4 thinks by default, which multiplies latency on large evidence packets.
+        // It accepts only MINIMAL (off) or HIGH (the default).
+        thinkingConfig: { thinkingLevel: env.GEMMA_THINKING === 'high' ? ThinkingLevel.HIGH : ThinkingLevel.MINIMAL },
+        abortSignal: signal,
       },
     });
-
-    const outputText = response.text || '';
-    const plan = parseAndValidateModelOutput(outputText, evidencePacket);
-
-    return {
-      plan,
-      modelUsed: modelName,
-    };
+    outputText = response.text || '';
   } catch (err: unknown) {
     if (err instanceof AppError) throw err;
+    throw toAppError(err, modelName, signal);
+  }
 
-    const errMsg = err instanceof Error ? err.message : String(err);
-    console.error('Error during Gemma analysis:', errMsg);
+  const plan = parseAndValidateModelOutput(outputText, evidencePacket);
+  return { plan, modelUsed: modelName };
+}
 
-    if (errMsg.includes('not found') || errMsg.includes('unsupported model') || errMsg.includes('404')) {
-      throw new AppError(
-        'AI_UNAVAILABLE',
-        `The requested Gemma model (${modelName}) could not be accessed. Verify model availability or permissions for your GEMINI_API_KEY.`,
-        502
-      );
-    }
+function toAppError(err: unknown, modelName: string, signal?: AbortSignal): AppError {
+  // Upstream error text can include request details; log it server-side only.
+  console.error('Error during Gemma analysis:', err);
 
-    if (errMsg.includes('quota') || errMsg.includes('rate limit') || errMsg.includes('429')) {
-      throw new AppError(
-        'AI_UNAVAILABLE',
-        'Google Gen AI quota limit reached for this API key. Please retry in a few moments.',
-        429
-      );
-    }
+  if (signal?.aborted || (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError'))) {
+    return new AppError('ANALYSIS_TIMEOUT', 'The AI analysis took too long. Please try again.', 504);
+  }
 
-    throw new AppError(
-      'AI_INVALID_RESPONSE',
-      `Analysis service error: ${errMsg}`,
+  const status = err instanceof ApiError ? err.status : undefined;
+
+  if (status === 404) {
+    return new AppError(
+      'AI_UNAVAILABLE',
+      `The requested Gemma model (${modelName}) could not be accessed. Verify model availability or permissions for your GEMINI_API_KEY.`,
       502
     );
   }
+
+  if (status === 429) {
+    return new AppError(
+      'AI_UNAVAILABLE',
+      'Google Gen AI quota limit reached for this API key. Please retry in a few moments.',
+      429
+    );
+  }
+
+  if (status === 401 || status === 403) {
+    return new AppError(
+      'AI_UNAVAILABLE',
+      'The configured GEMINI_API_KEY was rejected. Check that it is valid.',
+      502
+    );
+  }
+
+  if (status === 400) {
+    return new AppError(
+      'AI_UNAVAILABLE',
+      'The AI service rejected the request. If you attached a screenshot, try a different image.',
+      502
+    );
+  }
+
+  return new AppError(
+    'AI_UNAVAILABLE',
+    'The AI analysis service is temporarily unavailable. Please try again.',
+    502
+  );
 }

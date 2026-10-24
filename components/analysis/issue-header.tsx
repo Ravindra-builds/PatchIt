@@ -1,7 +1,8 @@
+'use client';
 import React from 'react';
 import { IssueMetadata, ContributionPlan } from '@/features/analysis/types';
 import { Badge } from '../ui/badge';
-import { ExternalLink, Copy, Check, Download, GitPullRequest } from 'lucide-react';
+import { ExternalLink, Copy, Check, Download } from 'lucide-react';
 
 interface IssueHeaderProps {
   issue: IssueMetadata;
@@ -57,11 +58,15 @@ export function IssueHeader({ issue, plan, modelUsed }: IssueHeaderProps) {
     return md;
   };
 
-  const handleCopyMarkdown = () => {
-    const md = generateMarkdown();
-    navigator.clipboard.writeText(md);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyMarkdown = async () => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(generateMarkdown());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Failed to copy to clipboard:', err);
+    }
   };
 
   const handleDownloadMarkdown = () => {
@@ -102,6 +107,7 @@ export function IssueHeader({ issue, plan, modelUsed }: IssueHeaderProps) {
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleCopyMarkdown}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded bg-[#172233] hover:bg-[#1e2c3f] border border-[#273548] text-[#E6EDF5] transition-colors cursor-pointer"
             title="Copy plan as Markdown"
@@ -110,6 +116,7 @@ export function IssueHeader({ issue, plan, modelUsed }: IssueHeaderProps) {
             <span>{copied ? 'Copied' : 'Copy Plan'}</span>
           </button>
           <button
+            type="button"
             onClick={handleDownloadMarkdown}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded bg-[#172233] hover:bg-[#1e2c3f] border border-[#273548] text-[#E6EDF5] transition-colors cursor-pointer"
             title="Download plan as Markdown file"

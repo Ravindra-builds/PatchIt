@@ -91,11 +91,15 @@ export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Repo URL */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#E6EDF5]">
+          <label htmlFor="repo-url" className="block text-xs font-medium text-[#E6EDF5]">
             Repository URL <span className="text-[#48C9A4]">*</span>
           </label>
           <input
+            id="repo-url"
+            name="repositoryUrl"
             type="url"
+            aria-invalid={fieldErrors.repo ? true : undefined}
+            aria-describedby={fieldErrors.repo ? 'repo-url-error' : undefined}
             value={repoUrl}
             onChange={(e) => {
               setRepoUrl(e.target.value);
@@ -106,7 +110,7 @@ export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
             className="w-full bg-[#172233] border border-[#273548] focus:border-[#48C9A4] focus:ring-1 focus:ring-[#48C9A4] rounded-lg px-3.5 py-2 text-sm text-[#E6EDF5] placeholder-[#9BAABD]/50 outline-none transition-all font-mono"
           />
           {fieldErrors.repo && (
-            <p className="text-xs text-[#F08080] flex items-center gap-1 mt-1">
+            <p id="repo-url-error" className="text-xs text-[#F08080] flex items-center gap-1 mt-1">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               {fieldErrors.repo}
             </p>
@@ -115,11 +119,15 @@ export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
 
         {/* Issue URL */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#E6EDF5]">
+          <label htmlFor="issue-url" className="block text-xs font-medium text-[#E6EDF5]">
             Issue URL <span className="text-[#48C9A4]">*</span>
           </label>
           <input
+            id="issue-url"
+            name="issueUrl"
             type="url"
+            aria-invalid={fieldErrors.issue ? true : undefined}
+            aria-describedby={fieldErrors.issue ? 'issue-url-error' : undefined}
             value={issueUrl}
             onChange={(e) => {
               setIssueUrl(e.target.value);
@@ -130,7 +138,7 @@ export function AnalysisForm({ onSubmit, isLoading }: AnalysisFormProps) {
             className="w-full bg-[#172233] border border-[#273548] focus:border-[#48C9A4] focus:ring-1 focus:ring-[#48C9A4] rounded-lg px-3.5 py-2 text-sm text-[#E6EDF5] placeholder-[#9BAABD]/50 outline-none transition-all font-mono"
           />
           {fieldErrors.issue && (
-            <p className="text-xs text-[#F08080] flex items-center gap-1 mt-1">
+            <p id="issue-url-error" className="text-xs text-[#F08080] flex items-center gap-1 mt-1">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               {fieldErrors.issue}
             </p>

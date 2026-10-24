@@ -20,6 +20,7 @@ export function ScreenshotPicker({
   const [fileSize, setFileSize] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const maxSizeMb = Math.round(maxSizeBytes / (1024 * 1024));
 
   const handleFile = (file: File) => {
     setError(null);
@@ -30,7 +31,7 @@ export function ScreenshotPicker({
     }
 
     if (file.size > maxSizeBytes) {
-      setError('Image must be under 5 MB in size.');
+      setError(`Image must be under ${maxSizeMb} MB in size.`);
       return;
     }
 
@@ -67,14 +68,37 @@ export function ScreenshotPicker({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="block text-xs font-medium text-[#9BAABD]">
+        <label htmlFor="screenshot-file" className="block text-xs font-medium text-[#9BAABD]">
           Optional: Error screenshot
         </label>
-        <span className="text-[11px] text-[#9BAABD]/70">PNG, JPG or WebP (max 5 MB)</span>
+        <span className="text-[11px] text-[#9BAABD]/70">PNG, JPG or WebP (max {maxSizeMb} MB)</span>
       </div>
+
+      <input
+        id="screenshot-file"
+        name="screenshot"
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+          }
+        }}
+      />
 
       {!preview ? (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload error screenshot"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
@@ -84,22 +108,12 @@ export function ScreenshotPicker({
           <span className="text-xs text-[#9BAABD] group-hover:text-[#E6EDF5] transition-colors">
             Drop screenshot here or <span className="text-[#48C9A4] underline">browse</span>
           </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                handleFile(e.target.files[0]);
-              }
-            }}
-          />
         </div>
       ) : (
         <div className="bg-[#172233] border border-[#273548] rounded-lg p-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded border border-[#273548] overflow-hidden bg-black/40 shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={preview}
                 alt="Screenshot preview"
